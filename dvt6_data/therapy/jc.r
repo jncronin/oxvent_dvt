@@ -1,4 +1,5 @@
 library(ggplot2)
+cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 # load + clean data
 d = readxl::read_excel('oxvent_air_rates.xlsx', skip=1)
@@ -94,10 +95,10 @@ dvt.flow <- merge(dvt, dflow)
 #dvt.flow$pred.flow.bin.name = sprintf("%i - %i", as.integer(dvt.flow$pred.flow.bin-12.5), as.integer(dvt.flow$pred.flow.bin+12.5-1))
 
 dvt.flow$pred.flow.bin = cut(dvt.flow$pred.flow, breaks=c(700,825,900),
-                             labels=c('725-824', '825-924'))
+                             labels=c('< 825', '\U2265 825'))
 dvt.flow$pred.flow.bin.name = dvt.flow$pred.flow.bin
 
-pleft2 <- ggplot(dvt.flow, aes(x=pred.flow, y=flow.error, col=as.factor(vt))) +
+pleft2 <- ggplot(dvt.flow, aes(x=pred.flow, y=flow.error, col=as.factor(vt), shape=as.factor(vt))) +
   geom_vline(xintercept=825, lty='dashed', size=0.5) +
   geom_line(size=0.5) +
   geom_point() +
@@ -105,9 +106,10 @@ pleft2 <- ggplot(dvt.flow, aes(x=pred.flow, y=flow.error, col=as.factor(vt))) +
   xlab('Set Flow (mL/s)') +
   ylab('Actual - Set Flow (mL/s)') +
   theme(axis.text=element_text(color='black'), axis.ticks=element_line(color='black')) +
-  scale_color_discrete(name=expression(V[T]*" (mL)"))
+  scale_color_manual(name=expression(V[T]*" (mL)"), values=cbbPalette) +
+  scale_shape_discrete(name=expression(V[T]*" (mL)"))
 
-pright2 <- ggplot(dvt.flow, aes(x=vt, y=vt.error, col=as.factor(pred.flow.bin.name))) +
+pright2 <- ggplot(dvt.flow, aes(x=vt, y=vt.error, col=as.factor(pred.flow.bin.name), shape=as.factor(pred.flow.bin.name))) +
   geom_point() +
   #geom_line() +
   geom_smooth(aes(group=as.factor(pred.flow.bin.name)),
@@ -116,7 +118,8 @@ pright2 <- ggplot(dvt.flow, aes(x=vt, y=vt.error, col=as.factor(pred.flow.bin.na
   xlab(expression('Set V'[T]*' (mL)')) +
   ylab(expression('Actual - Set V'[T] * ' (mL)')) +
   theme(axis.text=element_text(color='black'), axis.ticks=element_line(color='black')) +
-  scale_color_discrete(name='Set Flow (mL/s)')
+  scale_color_manual(name='Set Flow (mL/s)', values=cbbPalette) +
+  scale_shape_discrete(name='Set Flow (mL/s)')
 
 # combine
 p2 <- ggpubr::ggarrange(pleft2, pright2, nrow=1, ncol=2,
@@ -138,3 +141,5 @@ t.test(vt.error~pred.flow.bin, data=dvt.flow)
 
 library(pROC)
 rt = roc(vt.error>-20~pred.flow, data=dvt.flow)
+boxplot(vt.error~pred.flow<825, data=dvt.flow)
+
