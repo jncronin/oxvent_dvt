@@ -93,13 +93,14 @@ dvt.flow <- merge(dvt, dflow)
 #                                               labels=seq(from=712.5,to=887.5, by=25))))
 #dvt.flow$pred.flow.bin.name = sprintf("%i - %i", as.integer(dvt.flow$pred.flow.bin-12.5), as.integer(dvt.flow$pred.flow.bin+12.5-1))
 
-dvt.flow$pred.flow.bin = cut(dvt.flow$pred.flow, breaks=c(700,800,900),
-                             labels=c('700-799', '800-899'))
+dvt.flow$pred.flow.bin = cut(dvt.flow$pred.flow, breaks=c(700,825,900),
+                             labels=c('725-824', '825-924'))
 dvt.flow$pred.flow.bin.name = dvt.flow$pred.flow.bin
 
 pleft2 <- ggplot(dvt.flow, aes(x=pred.flow, y=flow.error, col=as.factor(vt))) +
+  geom_vline(xintercept=825, lty='dashed', size=0.5) +
+  geom_line(size=0.5) +
   geom_point() +
-  geom_line() +
   theme_classic() +
   xlab('Set Flow (mL/s)') +
   ylab('Actual - Set Flow (mL/s)') +
@@ -110,7 +111,7 @@ pright2 <- ggplot(dvt.flow, aes(x=vt, y=vt.error, col=as.factor(pred.flow.bin.na
   geom_point() +
   #geom_line() +
   geom_smooth(aes(group=as.factor(pred.flow.bin.name)),
-              method='lm', formula=y~x, se=FALSE) +
+              method='lm', formula=y~x, se=FALSE, size=0.5) +
   theme_classic() +
   xlab(expression('Set V'[T]*' (mL)')) +
   ylab(expression('Actual - Set V'[T] * ' (mL)')) +
@@ -126,3 +127,14 @@ p2 <- ggpubr::ggarrange(pleft2, pright2, nrow=1, ncol=2,
 Cairo::CairoPDF('fig4-2.pdf', width=8.5, height=3)
 print(p2)
 dev.off()
+
+
+# stats
+summary(lm(vt.error~vt, data=dvt.flow[which(dvt.flow$pred.flow<825),]))
+summary(lm(vt.error~vt, data=dvt.flow[which(dvt.flow$pred.flow>=825),]))
+summary(lm(vt.error~vt, data=dvt.flow))
+wilcox.test(vt.error~pred.flow.bin, data=dvt.flow)
+t.test(vt.error~pred.flow.bin, data=dvt.flow)
+
+library(pROC)
+rt = roc(vt.error>-20~pred.flow, data=dvt.flow)
